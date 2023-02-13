@@ -1,0 +1,25 @@
+{
+  "ver": "1.0.4",
+  "importer": "texture-cube",
+  "imported": true,
+  "uuid": "51d8da23-1601-4ba9-a693-8e622ed9ecef",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "wrapModeS": "repeat",
+    "wrapModeT": "repeat",
+    "minfilter": "linear",
+    "magfilter": "linear",
+    "mipfilter": "none",
+    "anisotropy": 0,
+    "isRGBE": false,
+    "left": "1134cf7d-6e8a-42cf-8694-b6377881ba78",
+    "right": "8ffe6527-bf4b-4768-8d48-c4926fdf9efa",
+    "top": "aee2a45b-b1b8-40ac-95a8-5fd861d11aa5",
+    "bottom": "b68f947f-4062-4f84-b4dc-bc0974861fa5",
+    "front": "a4b70ba0-9c14-46f7-a7c7-03ce61be91de",
+    "back": "7a02deff-0c1e-49c9-8124-069a19c18482"
+  }
+}

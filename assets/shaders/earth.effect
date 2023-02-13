@@ -1,0 +1,73 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: legacy/main-functions/general-vs:vert # builtin header
+      frag: earth-fs:frag
+      properties: &props
+        mainTexture:    { value: white }
+        lightTexture:    { value: white }
+        bumpTexture:    { value: white }
+        specularTexture:    { value: white }
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }
+        lightColor:      { value: [1, 1, 1, 1], editor: { type: color } }
+        bumpInstensity:  { value: 1.0, editor: {slide: true, range: [0, 30], step: 0.1}}
+        reflectInstensity:  { value: 1.0, editor: {slide: true, range: [0, 30], step: 0.1}}
+}%
+
+CCProgram earth-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>  // 包含 Cocos Creator 内置全局变量
+  #include <legacy/output>
+  #include <legacy/fog-fs>
+
+  in vec2 v_uv;
+  in vec3 v_position;
+  in vec3 v_normal;
+
+  uniform sampler2D mainTexture;
+  uniform sampler2D lightTexture;
+  uniform sampler2D bumpTexture;
+  uniform sampler2D specularTexture;
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 lightColor;
+    float bumpInstensity;
+    float reflectInstensity;
+  };
+
+  vec4 frag () {
+    vec3 normal = normalize(v_normal);  //重新归一化法线。
+    vec3 viewDirection = cc_cameraPos.xyz - v_position; //计算视线的方向
+    vec3 normalizedViewDirection = normalize(viewDirection);  // 对视线方向进行归一化
+    vec3 normalMainLightDirection = normalize(cc_mainLitDir.xyz); //对主光源（恒星光）方向进行归一化
+    float lightIntensity = dot(normal, normalMainLightDirection);//计算法线向量与光方向夹角的余弦[-1, 1]
+    vec4 col = mainColor * texture(mainTexture, v_uv);
+
+    vec3 normalReflectNormal = normalize(normalizedViewDirection - normalMainLightDirection); //计算反射法线矢量方向
+    float reflectPower = max(dot(normal, normalReflectNormal), 0.0);// 计算反光的亮度
+
+    //在水域设置反光
+    vec4 specular = texture(specularTexture, v_uv);
+    if(length(specular.rgb) > 0.5){
+        col += pow(reflectPower, reflectInstensity) * mainColor;;
+    }
+
+    //处理简单的高度
+    vec4 bump = texture(bumpTexture, v_uv);
+    float bumpRatio = length(bump.rgb);
+    if(bumpRatio > 0.5){
+        col += pow(bumpRatio, bumpInstensity) * mainColor;;
+    }
+
+    //在背光处，使用灯光纹理
+    if(lightIntensity > 0.0){
+       col += lightColor * texture(lightTexture, v_uv) * lightIntensity;
+    } 
+    CC_APPLY_FOG(col, v_position);
+    return CCFragOutput(col);
+  }
+}%

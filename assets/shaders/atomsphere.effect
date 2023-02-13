@@ -1,0 +1,55 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: legacy/main-functions/general-vs:vert # builtin header
+      frag: atomsphere-fs:frag
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendSrcAlpha: src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: &props
+        mainTexture:    { value: white }
+        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }
+        atomsphereColor:  { value: [1.0, 1.0, 1.0, 1.0], editor: { displayName: Atomsphere Color, type: color } }
+        instensity:  { value: 1.0, editor: {slide: true, range: [0, 10], step: 0.1}}
+}%
+
+CCProgram atomsphere-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>  // 包含 Cocos Creator 内置全局变量
+  #include <legacy/output>
+  #include <legacy/fog-fs>
+
+  in vec2 v_uv;
+  in vec3 v_position;
+  in vec3 v_normal;
+
+  uniform sampler2D mainTexture;
+
+  uniform Constant {
+    vec4 mainColor;
+    vec4 atomsphereColor;
+    float instensity;
+  };
+
+  vec4 frag () {
+    vec3 normal = normalize(v_normal);  // 重新归一化法线。
+    vec3 viewDirection = cc_cameraPos.xyz - v_position; // 计算视线的方向
+    vec3 normalizedViewDirection = normalize(viewDirection);  // 对视线方向进行归一化
+    vec3 normalMainLightDirection = normalize(cc_mainLitDir.xyz); // 对主光源（恒星光）方向进行归一化
+    float lightIntensity = min(0.9 - 0.5 * dot(normal, normalMainLightDirection), 1.0);//计算法线向量与光方向夹角的余弦，背光地方光强减弱[0.4, 1]
+    float atomspherePower = (1.0 - max(dot(normal, normalizedViewDirection), 0.0)) * lightIntensity;// 计算 Atomsphere Light 的亮度
+
+    vec4 col = mainColor * texture(mainTexture, v_uv); // 计算最终的颜色
+    col += pow(atomspherePower, instensity) * atomsphereColor; // 增加边缘光
+    col.a *= atomspherePower;
+    CC_APPLY_FOG(col, v_position);
+    return CCFragOutput(col);
+  }
+}%
